@@ -2,28 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BollyQuiz Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BollyQuiz Buzzer</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; }
-        #buzz-btn { width: 220px; height: 220px; border-radius: 50%; background: #ef4444; color: white; font-size: 2rem; border: none; cursor: pointer; }
-        #buzz-btn:disabled { background: #334155; color: #64748b; }
+        body { font-family: 'Poppins', sans-serif; background: #020617; color: white; text-align: center; padding: 20px; overflow: hidden; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+        .btn { padding: 20px; margin: 10px; border-radius: 15px; border: none; font-size: 1.5rem; font-weight: bold; cursor: pointer; width: 80%; }
+        #buzz-btn { width: 250px; height: 250px; border-radius: 50%; background: #ef4444; color: white; font-size: 2.5rem; border: 8px solid #991b1b; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); margin: 0 auto; transition: 0.1s; }
+        #buzz-btn:active { transform: scale(0.9); background: #dc2626; }
+        #buzz-btn:disabled { background: #1e293b; border-color: #0f172a; box-shadow: none; color: #475569; }
+        .team-sel { background: #fbbf24; color: #000; }
+        h2 { font-family: 'Cinzel', serif; color: #fbbf24; margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <div id="join-screen">
-        <input type="text" id="name" placeholder="Team Name" style="padding:10px;">
-        <button onclick="join()" style="padding:10px; background:#fbbf24;">JOIN</button>
+
+    <div id="setup">
+        <h2>Who are you?</h2>
+        <div id="team-list">
+            <button class="btn team-sel" onclick="pick('Team 1')">TEAM 1</button>
+            <button class="btn team-sel" onclick="pick('Team 2')">TEAM 2</button>
+            <button class="btn team-sel" onclick="pick('Team 3')">TEAM 3</button>
+            <button class="btn team-sel" onclick="pick('Team 4')">TEAM 4</button>
+        </div>
     </div>
-    <div id="game-screen" style="display:none;">
-        <h2 id="display-q">Waiting...</h2>
-        <button id="buzz-btn" onclick="buzz()">BUZZ!</button>
-        <p id="status">Ready</p>
+
+    <div id="main" style="display:none;">
+        <h3 id="team-tag" style="color:#fbbf24; margin-bottom:10px;">TEAM: ---</h3>
+        <button id="buzz-btn" onclick="sendBuzz()">BUZZ!</button>
+        <p id="status" style="margin-top:20px; font-weight:bold;">READY</p>
     </div>
 
 <script>
+// THIS PART IS THE MAGIC CLOUD LINK
 const firebaseConfig = {
   apiKey: "AIzaSyDDAn3h5vQ71gd2gU2Dj1e9o0IwjHDdl-k",
   authDomain: "bollyquiz-arena.firebaseapp.com",
@@ -35,32 +47,31 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let myName = "";
+let myTeam = "";
 
-function join() {
-    myName = document.getElementById('name').value;
-    if(!myName) return;
-    db.ref('arena/teams').push({ name: myName, score: 0 });
-    document.getElementById('join-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'block';
+function pick(name) {
+    myTeam = name;
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('main').style.display = 'flex';
+    document.getElementById('team-tag').innerText = "TEAM: " + name;
 }
 
-// LISTEN FOR QUESTION
-db.ref('arena/active_question').on('value', snap => {
-    if(snap.val()) document.getElementById('display-q').innerText = snap.val().text;
-});
-
-// LISTEN FOR BUZZER LOCK
-db.ref('arena/buzzer_locked').on('value', snap => {
-    const isLocked = snap.val();
-    const btn = document.getElementById('buzz-btn');
-    btn.disabled = isLocked;
-    document.getElementById('status').innerText = isLocked ? "LOCKED" : "GO!";
-});
-
-function buzz() {
-    db.ref('arena/buzzer_locked').set(true);
-    db.ref('arena/current_buzzer').set({ name: myName });
+function sendBuzz() {
+    // This tells the TV screen that you pressed the button
+    db.ref('arena/buzz').set({
+        teamName: myTeam,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+    // Lock the button so you can't spam it
+    document.getElementById('buzz-btn').disabled = true;
+    document.getElementById('status').innerText = "BUZZED!";
+    
+    // Auto-reset after 3 seconds for the next question
+    setTimeout(() => {
+        db.ref('arena/buzz').set(null); 
+        document.getElementById('buzz-btn').disabled = false;
+        document.getElementById('status').innerText = "READY";
+    }, 3000);
 }
 </script>
 </body>
