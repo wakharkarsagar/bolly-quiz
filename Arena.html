@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BollyQuiz Arena v173.0 | Master Final</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Poppins:wght@400;500&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        :root { 
+            --bg: #020617; --glass: rgba(15, 23, 42, 0.88); --dock-glass: rgba(15, 23, 42, 0.98); 
+            --accent: #00d4ff; --gold: #fbbf24; --success: #10b981; --danger: #e11d48; --white: #f8fafc; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: none; }
+        *::-webkit-scrollbar { display: none; }
+        body { background: radial-gradient(circle at center, #1e293b 0%, var(--bg) 100%); color: var(--white); font-family: 'Poppins', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; transition: 0.4s; position: relative; }
+
+        #setup-slide {
+            background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover; background-position: center; border-radius: 0 !important; width: 100% !important; height: 100vh !important; max-width: 100% !important;
+        }
+        .glitter-text { font-family: 'Cinzel'; font-weight: 900; background: linear-gradient(90deg, #ffd700, #ffffff, #ffea00, #c0c0c0, #ffd700); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: glitter 3s linear infinite; }
+        @keyframes glitter { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        #bolt-btn { background: #ffcc00 !important; color: #000 !important; border-radius: 50% !important; width: 44px !important; height: 44px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 0 10px #ffcc00 !important; border: 2px solid #fff !important; transition: 0.3s; cursor: pointer; }
+        .bolt-active { transform: scale(1.15); filter: brightness(1.2); animation: boltPulse 0.6s infinite alternate; }
+        @keyframes boltPulse { from { box-shadow: 0 0 5px #ffcc00; } to { box-shadow: 0 0 25px #ffcc00; } }
+        body.double-pts { border: 12px solid #ffcc00; box-shadow: inset 0 0 120px rgba(251, 191, 36, 0.5); }
+        
+        #stage { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; padding: 15px; z-index: 10; min-height: 0; }
+        .slide { position: absolute; width: 92%; max-width: 1100px; height: 62vh; background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 40px; padding: 30px; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(25px); text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.8); overflow-y: auto; }
+        .slide.active { display: flex; animation: slideUp 0.4s ease-out; }
+
+        .theatre-hub { border-top: 5px solid rgba(0, 212, 255, 0.6); border-radius: 100% 100% 40px 40px / 12% 12% 0 0; box-shadow: 0 -30px 100px -20px var(--accent); padding-top: 50px !important; }
+        .strategy-card { background: rgba(251, 191, 36, 0.1); border: 1px dashed var(--gold); border-radius: 20px; padding: 20px; margin-top: 20px; width: 80%; text-align: left; }
+
+        #nav-dock { height: 70px; background: var(--dock-glass); border: 1px solid rgba(255,255,255,0.1); padding: 0 40px; border-radius: 100px; display: none; align-items: center; justify-content: center; gap: 20px; z-index: 9999; backdrop-filter: blur(15px); margin: 0 auto 15px auto; }
+        #nav-dock button { font-size: 1.6rem; background: none; border: none; cursor: pointer; color: #fff; transition: 0.2s; }
+        
+        #scoreboard { height: 160px; background: rgba(1, 4, 9, 0.99); border-top: 1px solid rgba(255,255,255,0.1); display: none; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 10px 30px; z-index: 10003; }
+        .team-box { background: rgba(255,255,255,0.02); border-radius: 15px; padding: 5px; display: flex; flex-direction: column; align-items: center; border-bottom: 3px solid var(--accent); }
+        .team-score-display { font-size: 1.6rem; font-weight: 900; font-family: 'Orbitron'; color: var(--gold); }
+        .t-name-edit { background: transparent; border: none; color: #fff; font-weight: 600; text-align: center; width: 95%; font-size: 0.9rem; outline: none; }
+
+        .btn-action { background: var(--accent); color: #000; border: none; padding: 12px 35px; font-weight: 900; cursor: pointer; border-radius: 12px; font-family: 'Cinzel'; transition: 0.3s; text-transform: uppercase; margin-top: 10px; }
+        .q-text { font-size: 2.2rem; line-height: 1.2; color: #fff; font-family: 'Cinzel'; font-weight: 700; margin: 15px 0; }
+        .ans-reveal { visibility: hidden; opacity: 0; transform: translateY(10px); transition: 0.4s; padding: 15px; border-radius: 15px; width: 85%; border: 2px solid var(--accent); background: rgba(0,212,255,0.1); font-size: 1.8rem; font-family: 'Cinzel'; font-weight: 900; color: var(--accent); }
+        .ans-reveal.visible { visibility: visible; opacity: 1; transform: translateY(0); }
+        .hint-box { opacity: 0; transition: 0.3s; color: var(--gold); font-weight: 600; background: rgba(251, 191, 36, 0.1); padding: 8px 20px; border-radius: 10px; margin-top: 10px; }
+        .hint-box.visible { opacity: 1; }
+
+        /* 🚀 Final Cinematic Rocket Animation (No Icons) */
+        .rocket-anim { position: fixed; bottom: -150px; left: 50%; transform: translateX(-50%); z-index: 100000; pointer-events: none; white-space: nowrap; display: flex; flex-direction: column; align-items: center; animation: shootUpSlow 4.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+        .rocket-team-text { font-family: 'Cinzel'; font-weight: 900; font-size: 3.5rem; background: linear-gradient(90deg, #ffd700, #ffffff, #ffea00, #ffd700); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: glitter 2s linear infinite; filter: drop-shadow(0 0 25px var(--gold)); }
+        @keyframes shootUpSlow { 0% { bottom: -150px; opacity: 1; transform: translateX(-50%) scale(0.6); } 15% { bottom: 25%; transform: translateX(-50%) scale(1); } 85% { opacity: 1; } 100% { bottom: 110vh; opacity: 0; transform: translateX(-50%) scale(1.5); } }
+
+        .confetti { position: fixed; width: 12px; height: 12px; z-index: 99999; pointer-events: none; border-radius: 2px; animation: fallConfetti 3.5s linear forwards; }
+        @keyframes fallConfetti { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+
+        #audit-ledger, #game-rules-page, #buzzer-modal, #url-settings { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(2,6,23,0.98); width:85%; height:80%; z-index:60000; border-radius:30px; padding:40px; border:2px solid var(--accent); flex-direction:column; backdrop-filter: blur(40px); }
+        
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div id="fx-layer"></div>
+
+<div id="stage">
+    <div class="slide active" id="setup-slide">
+        <h1 class="glitter-text" style="font-size:4rem; margin-bottom: 20px;">Bollywood & Hollywood Battle</h1>
+        <div id="setup-container" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; width:100%; max-width:850px; margin: 40px 0; overflow-y: auto; max-height: 45vh; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 20px;">
+            <input type="text" class="t-in" value="Team 1" style="background:rgba(255,255,255,0.05); border:1px solid var(--accent); color:#fff; padding:12px; border-radius:8px; text-align:center;">
+            <input type="text" class="t-in" value="Team 2" style="background:rgba(255,255,255,0.05); border:1px solid var(--accent); color:#fff; padding:12px; border-radius:8px; text-align:center;">
+            <input type="text" class="t-in" value="Team 3" style="background:rgba(255,255,255,0.05); border:1px solid var(--accent); color:#fff; padding:12px; border-radius:8px; text-align:center;">
+            <input type="text" class="t-in" value="Team 4" style="background:rgba(255,255,255,0.05); border:1px solid var(--accent); color:#fff; padding:12px; border-radius:8px; text-align:center;">
+            <input type="text" class="t-in" value="" placeholder="Team 5" style="background:rgba(255,255,255,0.05); border:1px solid var(--accent); color:#fff; padding:12px; border-radius:8px; text-align:center;">
+            <input type="text" class="t-in" value="" placeholder="Team 6" style="background:rgba(255,255,255,0.05); border:1px solid var(--accent); color:#fff; padding:12px; border-radius:8px; text-align:center;">
+        </div>
+        <button class="btn-action" style="font-size:1.8rem;" onclick="initGame()">ENTER ARENA</button>
+    </div>
+</div>
+
+<div id="nav-dock">
+    <button onclick="jumpTo('idx')" title="Hub"><i class="fas fa-home"></i></button>
+    <button onclick="nav(-1)" title="Back"><i class="fas fa-chevron-left"></i></button>
+    <button onclick="triggerHint()" title="Hint">💡</button>
+    <div id="prog" style="color:var(--accent); font-family:Orbitron; font-weight:900; min-width:80px; text-align:center;"></div>
+    <button onclick="triggerReveal()" title="Reveal">✨</button>
+    <button id="bolt-btn" onclick="toggleDouble()" title="High Stakes"><i class="fas fa-bolt"></i></button>
+    <button onclick="nav(1)" title="Forward"><i class="fas fa-chevron-right"></i></button>
+    <button onclick="toggleRules()" title="Game Rules">📜</button>
+    <button onclick="toggleBuzzer()" title="Buzzer Lobby"><i class="fas fa-mobile-alt"></i></button>
+    <button onclick="toggleModal('url-settings')" title="Settings"><i class="fas fa-cog"></i></button>
+    <button onclick="toggleAudit()" title="Ledger"><i class="fas fa-clipboard-list"></i></button>
+</div>
+
+<div id="url-settings">
+    <h2 class="glitter-text">LOBBY SETTINGS</h2>
+    <p style="margin:20px 0;">Enter your GitHub Pages URL to fix the QR code:</p>
+    <input type="text" id="host-url" placeholder="https://yourname.github.io/Bolly-quiz/" style="width:100%; padding:15px; border-radius:10px; border:1px solid var(--accent); background:rgba(0,0,0,0.5); color:white;">
+    <button class="btn-action" onclick="saveURL()">SAVE & UPDATE QR</button>
+    <button class="btn-action" style="background:#444;" onclick="toggleModal('url-settings')">CANCEL</button>
+</div>
+
+<div id="buzzer-modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 class="glitter-text">BUZZER LOBBY</h2>
+        <button onclick="toggleBuzzer()" class="btn-action">CLOSE</button>
+    </div>
+    <div style="display:flex; gap:40px; align-items:center; justify-content:center; flex:1;">
+        <div id="qr-container" style="background:white; padding:20px; border-radius:20px;">
+            <img id="qr-img" style="width:250px; height:250px;">
+        </div>
+        <div style="text-align:left; max-width:400px;">
+            <h3>Join on Mobile:</h3>
+            <p>1. Scan the QR code.</p>
+            <p>2. Enter your team name.</p>
+            <p>3. Tap your phone to Buzz!</p>
+            <button class="btn-action" style="margin-top:20px; background:var(--danger); color:white;" onclick="resetBuzzers()">RESET BUZZERS</button>
+        </div>
+    </div>
+</div>
+
+<div id="game-rules-page">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h2 class="glitter-text">GAME RULES</h2><button onclick="toggleRules()" class="btn-action">CLOSE</button></div>
+    <div class="rule-card"><h3>Standard Scoring</h3><p>• Correct Answer: <b>+10 Points</b><br>• Using a Hint: <b>-5 Points</b></p></div>
+    <div class="rule-card" style="border-left-color: #ffcc00;"><h3>Double Stakes</h3><p>• Right Answer: <b>+20 Points</b><br>• Wrong Answer: <b>0 Points</b><br>• Correct Answer with Hint: <b>+10 Points</b></p></div>
+</div>
+
+<div id="audit-ledger">
+    <div style="display:flex; justify-content:space-between; align-items:center;"><h2 class="glitter-text">ARENA AUDIT</h2><button onclick="toggleAudit()" class="btn-action">CLOSE</button></div>
+    <div id="audit-content" style="overflow-y:auto; flex-grow:1; margin-top:20px; font-family:monospace; color:#0f0;"></div>
+</div>
+
+<div id="scoreboard"></div>
+
+<script>
+// --- FIREBASE SETUP ---
+const firebaseConfig = { apiKey: "AIzaSyDDAn3h5vQ71gd2gU2Dj1e9o0IwjHDdl-k", authDomain: "bollyquiz-arena.firebaseapp.com", databaseURL: "https://bollyquiz-arena-default-rtdb.firebaseio.com", projectId: "bollyquiz-arena", storageBucket: "bollyquiz-arena.firebasestorage.app", messagingSenderId: "847926254864", appId: "1:847926254864:web:221a8e4c82d1951add1995" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playBeep(f, d) { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.1, audioCtx.currentTime); o.start(); o.stop(audioCtx.currentTime + d); }
+
+let cur = 0, teams = [], played = new Set(), isDouble = false, tRef = null, customURL = "";
+
+const DATA = {
+    rounds: [
+        { id: 'r1', title: 'Emoji Movie Mania', timer: 15, brief: "Decode the Movie Title from the emojis. <br>Example: 🚢 🧊 🎻 = <b>Titanic</b>", questions: shuffle([
+            {s:'🇮🇳', q:'🏫 📒 🧪 🍼 🚁', h:'Release: 2009', ans:'3 Idiots'},
+            {s:'🇮🇳', q:'🕶️ 🎹 🧑‍🦯 🐈 🔪', h:'Release: 2018', ans:'Andhadhun'},
+            {s:'🇮🇳', q:'🎰 🚬 🩸 ♠️ 🛥️', h:'Release: 2023', ans:'Animal'},
+            {s:'🇮🇳', q:'🔇 👂 📻 🚲 🍰', h:'Release: 2012', ans:'Barfi!'},
+            {s:'🇮🇳', q:'🏑 👭 🇮🇳 🧥 ⌚', h:'Release: 2007', ans:'Chak De! India'},
+            {s:'🇮🇳', q:'🦁 ⚔️ 🏰 🐎 📜', h:'Release: 2025', ans:'Chhaava'},
+            {s:'🇮🇳', q:'🛳️ ✈️ 🧔‍♂️ 🧔 🧔‍♀️', h:'Release: 2001', ans:'Dil Chahta Hai'},
+            {s:'🇮🇳', q:'火车 💃 🧣 🐄 🧤', h:'Release: 1995', ans:'Dilwale Dulhania Le Jayenge'},
+            {s:'🇮🇳', q:'🕵️‍♂️ 🎨 🧒 🖼️ 🩸', h:'Release: 2015', ans:'Drishyam'},
+            {s:'🇮🇳', q:'⚖️ 🧥 💼 🃏 🎤', h:'Release: 2025', ans:'Jolly LLB 3'},
+            {s:'🇮🇳', q:'🏫 🎻 🧤 🍃 👴', h:'Release: 2000', ans:'Mohabbatein'},
+            {s:'🇮🇳', q:'🎥 🔥 🎡 🔄 🎞️', h:'Release: 2007', ans:'Om Shanti Om'},
+            {s:'🇮🇳', q:'🚗 👴 💊 🚽 🛣️', h:'Release: 2015', ans:'Piku'},
+            {s:'🇮🇳', q:'📻 🧤 🛸 ⛪ 🎗️', h:'Release: 2014', ans:'PK'},
+            {s:'🇮🇳', q:'👰 🥊 裙 🇮🇸 🍭', h:'Release: 2014', ans:'Queen'},
+            {s:'🇮🇳', q:'🎤 🎸 🥃 💔 🧥', h:'Release: 2011', ans:'Rockstar'},
+            {s:'🇮🇳', q:'✈️ 💣 🇮🇳 👨‍✈️ ☁️', h:'Release: 2025', ans:'Sky Force'},
+            {s:'🇮🇳', q:'👻 🧟‍♂️ 💇‍♀️ 🕯️ 🧥', h:'Release: 2024', ans:'Stree 2'},
+            {s:'🇮🇳', q:'🧔 🎒 ⛰️ 📸 🍷', h:'Release: 2013', ans:'Yeh Jawaani Hai Deewani'},
+            {s:'🎬', q:'💙 🐉 🌲 🧬 🏹', h:'Release: 2009', ans:'Avatar'},
+            {s:'🎬', q:'🧤 💎 ⏳ 🛡️ 🔨', h:'Release: 2019', ans:'Avengers: Endgame'},
+            {s:'🎬', q:'💖 👱‍♀️ 🏠 🚗 👠', h:'Release: 2023', ans:'Barbie'},
+            {s:'🎬', q:'🗡️ 👊 🧤 🕶️ 🐕', h:'Release: 2024', ans:'Deadpool & Wolverine'},
+            {s:'🎬', q:'🍫 跑 🍤 🪶 鞋', h:'Release: 1994', ans:'Forrest Gump'},
+            {s:'🎬', q:'❄️ 👸 ☃️ 城堡 🦌', h:'Release: 2013', ans:'Frozen'},
+            {s:'🎬', q:'🏺 👻 🧥 🪙 🎭', h:'Release: 1990', ans:'Ghost'},
+            {s:'🎬', q:'⚔️ Stadium 🐅 🏛️ 🩸', h:'Release: 2000', ans:'Gladiator'},
+            {s:'🎬', q:'⚡ Glasses 🦉 扫帚 火车', h:'Series', ans:'Harry Potter'},
+            {s:'🎬', q:'🏠 🧒 🧤 🧊 🕷️', h:'Release: 1990', ans:'Home Alone'},
+            {s:'🎬', q:'🌀 💤 🕴️ 火车 ♟️', h:'Release: 2010', ans:'Inception'},
+            {s:'🎬', q:'🤡 🚬 💃 电视 🔫', h:'Release: 2019', ans:'Joker'},
+            {s:'🎬', q:'🦖 🦟 铺 🚁 🧬', h:'Release: 1993', ans:'Jurassic Park'},
+            {s:'🎬', q:'💍 火山 🏔️ 🏹 👁️', h:'Trilogy', ans:'Lord of the Rings'},
+            {s:'🎬', q:'🏴‍☠️ 锚 🪙 🍹 🐙', h:'Franchise', ans:'Pirates of the Caribbean'},
+            {s:'🎬', q:'🦸‍♂️ ❄️ 🏢 🧬 🐕', h:'Release: 2025', ans:'Superman'},
+            {s:'🎬', q:'🦾 🕶️ 摩托 火山 👍', h:'Release: 1991', ans:'Terminator 2'},
+            {s:'🎬', q:'🤡 🃏 蝙 🏙️ 🪙', h:'Release: 2008', ans:'The Dark Knight'},
+            {s:'🎬', q:'💊 🕶️ 📞 📟 🕴️', h:'Release: 1999', ans:'The Matrix'},
+            {s:'🎬', q:'🚢 🧊 🎻 💎 🚪', h:'Release: 1997', ans:'Titanic'},
+            {s:'🎬', q:' cowboy 🚀 🧒 📦 🍕', h:'Release: 1995', ans:'Toy Story'}
+        ])},
+        { id: 'r2', title: 'Emoji OTT Mania', timer: 15, brief: "Identify the Web Series Title from emojis. <br>Example: 🔫 👳‍♂️ = <b>Mirzapur</b>", questions: shuffle([
+            {s:'🇮🇳', q:'🔫 👳‍♂️ 城堡', h:"Kaleen Bhaiya", ans:'Mirzapur'},
+            {s:'🇮🇳', q:'🕵️‍♂️ 👨‍👩‍👧+👨‍👩‍👧‍👦 📱', h:"Srikant Tiwari", ans:'The Family Man'},
+            {s:'🇮🇳', q:'🚓 🏙️ 🩸', h:"Delhi Case", ans:'Delhi Crime'},
+            {s:'🇮🇳', q:'📦 🏫 👨‍🏫', h:"Kota Coaching", ans:'Kota Factory'},
+            {s:'🇮🇳', q:'⛪ 👨‍💼 🔪', h:"Gaitonde.", ans:'Sacred Games'},
+            {s:'🇮🇳', q:'✈️ 😱 🗺️', h:"1999 flight.", ans:'IC 814: The Kandahar Hijack'},
+            {s:'🇮🇳', q:'🕵️‍♀️ 🔍 🧥', h:"Kareena Kapoor detective.", ans:'The Buckingham Murders'},
+            {s:'🇮🇳', q:'🏦 📊 📈', h:"1992 Harshad Mehta.", ans:'Scam 1992'},
+            {s:'🇮🇳', q:'🪴 👨‍🔬 🚀', h:"Rocket science.", ans:'Rocket Boys'},
+            { s: '🎬', q: '🚲 🎄 waffle 👾', h: 'Stranger Things Kids.', ans: 'Stranger Things' },
+            { s: '🎬', q: '🍄 🧟‍♂️ 🎒 砖 🎸', h: 'The Last of Us fungus.', ans: 'The Last of Us' },
+            { s: '🎬', q: '♟️ 💊 🏆 👩‍🦰', h: 'Chess prodigy.', ans: "The Queen's Gambit" },
+            { s: '🎬', q: '⚔️ 狼 🪙 🪄', h: 'Geralt of Rivia.', ans: 'The Witcher' },
+            { s: '🎬', q: '🎻 🖤 🕸️ 城堡 🖐️', h: 'Wednesday Addams.', ans: 'Wednesday' }
+        ])},
+        { id: 'r3', title: 'Chronology Samjhaiye', timer: 25, brief: "Arrange titles from Oldest to Newest release year.", questions: [
+            { s: '🇮🇳', q: 'Superstar: <b>Shah Rukh Khan</b><br>1. DDLJ (Mustard fields & Mandolin)<br>2. Chak De! India (70 Minutes Speech)<br>3. Jawan (Bandaged Vigilante)', h: "1995 → 2007 → 2023", ans: "1 → 2 → 3" },
+            { s: '🇮🇳', q: 'Superstar: <b>Aamir Khan</b><br>1. Lagaan (Cricket vs British)<br>2. 3 Idiots (Campus life)<br>3. Dangal (Wrestling pit)', h: "2001 → 2009 → 2016", ans: "1 → 2 → 3" },
+            { s: '🇮🇳', q: 'Superstar: <b>Salman Khan</b><br>1. Maine Pyar Kiya (Friend cap)<br>2. Dabangg (Sunglasses)<br>3. Tiger 3 (Scarf)', h: "1989 → 2010 → 2023", ans: "1 → 2 → 3" },
+            { s: '🇮🇳', q: 'Superstar: <b>Alia Bhatt</b><br>1. Student of the Year<br>2. Raazi (Morse code)<br>3. Gangubai', h: "2012 → 2018 → 2022", ans: "1 → 2 → 3" },
+            { s: '🇮🇳', q: 'Superstar: <b>Ranbir Kapoor</b><br>1. Wake Up Sid<br>2. YJHD (Backpack)<br>3. Animal (Axe)', h: "2009 → 2013 → 2023", ans: "1 → 2 → 3" },
+            { s: '🇮🇳', q: 'Superstar: <b>Akshay Kumar</b><br>1. Main Khiladi Tu Anari<br>2. Hera Pheri<br>3. Sooryavanshi', h: "1994 → 2000 → 2021", ans: "1 → 2 → 3" },
+            { s: '🇮🇳', q: 'Superstar: <b>Deepika Padukone</b><br>1. Om Shanti Om<br>2. Piku (Toilet seat)<br>3. Kalki 2898 AD', h: "2007 → 2015 → 2024", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Leonardo DiCaprio</b><br>1. Titanic (Locket)<br>2. Inception (Top)<br>3. Killers of Flower Moon', h: "1997 → 2010 → 2023", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Robert Downey Jr.</b><br>1. Chaplin<br>2. Iron Man (Reactor)<br>3. Oppenheimer', h: "1992 → 2008 → 2023", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Meryl Streep</b><br>1. Sophie\'s Choice<br>2. Devil Wears Prada<br>3. Only Murders', h: "1982 → 2006 → 2023", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Tom Cruise</b><br>1. Top Gun<br>2. Ghost Protocol<br>3. Maverick', h: "1986 → 2011 → 2022", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Margot Robbie</b><br>1. Wolf of Wall St<br>2. I, Tonya<br>3. Barbie', h: "2013 → 2017 → 2023", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Brad Pitt</b><br>1. Seven<br>2. Inglourious Basterds<br>3. Bullet Train', h: "1995 → 2009 → 2022", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Cillian Murphy</b><br>1. 28 Days Later<br>2. Peaky Blinders<br>3. Oppenheimer', h: "2002 → 2013 → 2023", ans: "1 → 2 → 3" },
+            { s: '🎬', q: 'Superstar: <b>Scarlett Johansson</b><br>1. Translation<br>2. Lucy<br>3. Black Widow', h: "2003 → 2014 → 2021", ans: "1 → 2 → 3" }
+        ]},
+        { id: 'r4', title: 'English Vinglish', timer: 15, brief: "Translate literal translations back to original names.", questions: shuffle([
+            {s:'🇮🇳', q:"Heart-Owners Will Take the Bride", h:"SRK", ans:"Dilwale Dulhania Le Jayenge"},
+            {s:'🇮🇳', q:"The Heart is Mad", h:"Madhuri", ans:"Dil To Pagal Hai"},
+            {s:'🇮🇳', q:"I Have Done Love", h:"Salman Classic", ans:"Maine Pyar Kiya"},
+            {s:'🇮🇳', q:"Who Am I of Yours?", h:"Tuffy", ans:"Hum Aapke Hain Koun"},
+            {s:'🇮🇳', q:"Life Will Not Be Met Again", h:"Spain trip", ans:"Zindagi Na Milegi Dobara"},
+            {s:'🎬', q:"Loha Purush", h:"Stark", ans:"Iron Man"},
+            {s:'🎬', q:"Sapno ki Chori", h:"Dreams inception", ans:"Inception"},
+            {s:'🎬', q:"Makdi Manav", h:"Parker", ans:"Spider-Man"},
+            {s:'🎬', q:"Jungle Pustak", h:"Mowgli", ans:"The Jungle Book"},
+            {s:'🎬', q:"Samay Yatri", h:"DeLorean", ans:"Back to the Future"}
+        ])},
+        { id: 'r5', title: 'Jumbled Up', timer: 20, brief: "Unscramble letters to find the Movie.", questions: shuffle([
+            {s:'🇮🇳', q: "L A G N A D", h: "Wrestler", ans: "DANGAL"},
+            {s:'🇮🇳', q: "A B L I H U A B A", h: "Kingdom", ans: "BAAHUBALI"},
+            {s:'🇮🇳', q: "E H O L A Y", h: "Gabbar", ans: "SHOLAY"},
+            {s:'🎬', q: "N C I O I T P F P L U", h: "Briefcase.", ans: "PULP FICTION"},
+            {s:'🎬', q: "S A M E I D R N P", h: "Spider bite.", ans: "SPIDERMAN"},
+            {s:'🎬', q: "R J I S K P C R A U S A", h: "Dino park.", ans: "JURASSIC PARK"},
+            {s:'🎬', q: "S W T A S A R R", h: "Force.", ans: "STAR WARS"},
+            {s:'🎬', q: "S B R O T H G S E T S U", h: "Who you gonna call?", ans: "GHOSTBUSTERS"},
+            {s:'🎬', q: "N I N L I O K G", h: "Pride rock.", ans: "LION KING"},
+            {s:'🎬', q: "P H M O P E E N I E R", h: "Atomic bomb.", ans: "OPPENHEIMER"},
+            {s:'🎬', q: "M R A X I T E H T", h: "Matrix.", ans: "THE MATRIX"},
+            {s:'🎬', q: "A I E R B B", h: "Pink doll.", ans: "BARBIE"},
+            {s:'🎬', q: "R I T R L N A E L E S T", h: "Interstellar travel.", ans: "INTERSTELLAR"}
+        ])},
+        { id: 'r6', title: 'Connect The Actors', timer: 20, brief: "Name movie featuring all listed actors.", questions: [
+            {q: "Shah Rukh Khan, Nayanthara, Vijay Sethupathi", h: "2023 action epic.", ans: "Jawan (2023)"},
+            {q: "Vicky Kaushal, Triptii Dimri, Ammy Virk", h: "2024 biology comedy.", ans: "Bad Newz (2024)"},
+            {q: "Hrithik Roshan, Farhan Akhtar, Abhay Deol", h: "Spain bachelor trip.", ans: "Zindagi Na Milegi Dobara (2011)"},
+            {q: "Ranbir Kapoor, Rashmika Mandanna, Bobby Deol", h: "Violent 2023 saga.", ans: "Animal (2023)"},
+            {q: "Kartik Aaryan, Vidya Balan, Madhuri Dixit", h: "Manjulika 2024.", ans: "Bhool Bhulaiyaa 3 (2024)"}
+        ]},
+        { id: 'r7', title: 'Tie Breaker', timer: 15, brief: "Sudden Death Round. First team wins!", questions: [
+            { q: "which was 1st Indian movie nominated for oscar in 1957?", h: "Starring Nargis.", ans: "Mother India"},
+            { q: "In Om Shanti Om, the song \"Deewangi Deewangi\" features 31 stars. Who missed it due to plane delay?", h: "Greek God looks.", ans: "Hrithik Roshan"},
+            { q: "Before Laapataa Ladies, which was the last film produced by Aamir Khan sent as India's official Oscar entry?", h: "2010 release.", ans: "Peepli Live (2010)"}
+        ]}
+    ]
+};
+
+function logEvent(m) { const t = new Date().toLocaleTimeString(); document.getElementById('audit-content').innerHTML += `<div><span style="color:var(--accent)">[${t}]</span> ${m}</div>`; saveState(); }
+function saveState() { localStorage.setItem('bolly_arena_v172_master', JSON.stringify({ teams, cur, played: Array.from(played), audit: document.getElementById('audit-content').innerHTML, url: customURL })); }
+function loadState() { const s = JSON.parse(localStorage.getItem('bolly_arena_v172_master')); if (!s) return false; teams = s.teams; cur = s.cur; played = new Set(s.played); document.getElementById('audit-content').innerHTML = s.audit; customURL = s.url || ""; return true; }
+
+function spawnFX(teamName, type, val) {
+    const layer = document.getElementById('fx-layer');
+    const animBox = document.createElement('div');
+    animBox.className = 'rocket-anim';
+    const scoreStr = (val > 0 ? '+' : '') + val;
+    animBox.innerHTML = `<span class="rocket-team-text">${teamName} ${scoreStr}</span>`;
+    layer.appendChild(animBox);
+    if(type === 'plus') {
+        for(let i=0; i<40; i++) {
+            const c = document.createElement('div'); c.className = 'confetti';
+            c.style.left = Math.random() * 100 + 'vw'; c.style.background = `hsl(${Math.random()*360}, 100%, 50%)`;
+            c.style.animationDelay = Math.random() * 1.5 + 's'; layer.appendChild(c);
+            setTimeout(() => c.remove(), 4000);
+        }
+    }
+    setTimeout(() => animBox.remove(), 4500);
+}
+
+function saveURL() { customURL = document.getElementById('host-url').value; saveState(); toggleModal('url-settings'); }
+
+function initGame() {
+    const inputs = document.querySelectorAll('.t-in');
+    teams = Array.from(inputs).filter(i => i.value.trim() !== "").map(i => ({ n: i.value, s: 0 }));
+    if(teams.length === 0) return alert("Enter team names!");
+    document.getElementById('setup-slide').style.display = 'none';
+    const finalQR = customURL || window.location.origin;
+    document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(finalQR)}`;
+    let html = `<div class="slide theatre-hub" id="idx"><h1 class="glitter-text" style="font-size:3.5rem;">THE SILVER SCREEN</h1><div id="dir" style="margin-top:20px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; width:900px;"></div></div>`;
+    DATA.rounds.forEach((r) => {
+        const qCount = r.questions.length; const perTeam = Math.floor(qCount / teams.length); const remainder = qCount % teams.length;
+        html += `<div class="slide" id="${r.id}" data-total="${qCount}"><h1>ROUND: ${r.title}</h1><div style="display:flex; gap:20px;"><button class="btn-action" onclick="nav(1)">START</button><button class="btn-action" style="background:#444;" onclick="jumpTo('idx')">SKIP</button></div></div>`;
+        html += `<div class="slide briefing-slide" data-total="${qCount}"><h2>${r.title} BRIEFING</h2><div style="font-size:1.1rem; line-height:1.4; max-width:85%;">${r.brief}</div><div class="strategy-card"><h4>📊 ROUND STRATEGY</h4><div class="strategy-item"><span>Guaranteed Turns</span><span>${perTeam} per team</span></div><div class="strategy-item"><span>Bonus Steals</span><span>${remainder}</span></div></div><button class="btn-action" onclick="nav(1)">GO</button></div>`;
+        r.questions.forEach((q, i) => {
+            html += `<div class="slide q-slide" data-timer="${r.timer}" data-q="${i+1}" data-total="${qCount}"><div class="timer-ui">${r.timer}</div><div style="font-size:2.2rem; margin-bottom:10px;">${q.s || '❓'}</div><div class="q-text">${q.q}</div><div class="hint-box">${q.h || ''}</div><div class="ans-reveal"><b>${q.ans}</b></div>${(i + 1) === (perTeam * teams.length) && remainder > 0 ? `<button class="btn-action finish-btn" style="background:#444;" onclick="nav(${remainder + 1})">FINISH TURNS</button>` : ''}</div>`;
+        });
+        html += `<div class="slide summary"><h1 class="glitter-text">STANDINGS</h1><div class="pod" style="width:100%;"></div><button class="btn-action" onclick="jumpTo('idx')">CONTINUE</button></div>`;
+    });
+    document.getElementById('stage').innerHTML = html;
+    document.getElementById('nav-dock').style.display = 'flex';
+    document.getElementById('scoreboard').style.display = 'grid';
+    updateScore(); updateDir(); show(0);
+}
+
+function show(n) {
+    const slides = document.querySelectorAll('.slide'); if(!slides[n]) return;
+    clearInterval(tRef); slides.forEach(s => s.classList.remove('active')); cur = n; const s = slides[cur]; s.classList.add('active');
+    const prog = document.getElementById('prog'); if (s.classList.contains('q-slide')) prog.innerText = `${s.dataset.q} / ${s.dataset.total}`; else if (s.classList.contains('briefing-slide')) prog.innerText = `0 / ${s.dataset.total}`; else prog.innerText = "";
+    if(s.classList.contains('summary')) updateSum(s); if(s.id && s.id.startsWith('r')) { played.add(s.id); updateDir(); }
+    const tm = s.dataset.timer; if(tm) runTimer(s.querySelector('.timer-ui'), parseInt(tm));
+}
+
+function runTimer(el, s) { el.innerText = s; el.classList.remove('timer-red'); tRef = setInterval(() => { s--; el.innerText = s; if(s <= 5 && s > 0) { el.classList.add('timer-red'); playBeep(440, 0.1); } if(s === 0) { clearInterval(tRef); playBeep(220, 0.8); } }, 1000); }
+function toggleDouble() { isDouble = !isDouble; document.body.classList.toggle('double-pts'); document.getElementById('bolt-btn').classList.toggle('bolt-active'); }
+function chS(i, v) { let amt = isDouble ? v * 2 : v; teams[i].s += amt; updateScore(); spawnFX(teams[i].n, v > 0 ? 'plus' : 'minus', amt); logEvent(`${teams[i].n}: ${amt > 0 ? '+' : ''}${amt} pts`); }
+function updateScore() { document.getElementById('scoreboard').innerHTML = teams.map((t, i) => `<div class="team-box"><input class="t-name-edit" value="${t.n}" onchange="teams[${i}].n=this.value; saveState();"><div class="team-score-display">${t.s}</div><div style="display:flex; gap:10px;"><button style="background:var(--success); border:none; padding:5px 12px; cursor:pointer;" onclick="chS(${i},10)">+10</button><button style="background:var(--danger); border:none; color:#fff; padding:5px 12px; cursor:pointer;" onclick="chS(${i},-5)">-5</button></div></div>`).join(''); }
+function updateDir() { let html = DATA.rounds.filter(r => r.id !== 'r7').map(r => `<button class="btn-action" style="opacity:${played.has(r.id)?'0.4':'1'}" onclick="jumpTo('${r.id}')">${r.title}</button>`).join(''); html += `<button class="btn-action" style="grid-column:1/-1; border:2px solid var(--gold); background:rgba(76, 5, 25, 0.95);" onclick="jumpTo('r7')">TIE BREAKER</button>`; document.getElementById('dir').innerHTML = html; }
+function updateSum(sl) { const srt = [...teams].sort((a,b) => b.s - a.s); sl.querySelector('.pod').innerHTML = srt.map((t, i) => `<div style="margin:5px; font-size:1.4rem;">#${i+1} ${t.n} - ${t.s} PTS</div>`).join(''); }
+function triggerHint() { const active = document.querySelector('.slide.active'); const h = active.querySelector('.hint-box'); if(h) h.classList.toggle('visible'); }
+function triggerReveal() { const active = document.querySelector('.slide.active'); const r = active.querySelector('.ans-reveal'); if(r) r.classList.toggle('visible'); }
+function nav(d) { const slides = document.querySelectorAll('.slide'); if(slides[cur+d]) show(cur+d); }
+function jumpTo(id) { const slides = Array.from(document.querySelectorAll('.slide')); const target = document.getElementById(id); if(target) show(slides.indexOf(target)); }
+function toggleAudit() { document.getElementById('audit-ledger').style.display = (document.getElementById('audit-ledger').style.display==='none' || document.getElementById('audit-ledger').style.display==='') ? 'flex' : 'none'; }
+function toggleRules() { document.getElementById('game-rules-page').style.display = (document.getElementById('game-rules-page').style.display==='none' || document.getElementById('game-rules-page').style.display==='') ? 'flex' : 'none'; }
+function toggleBuzzer() { document.getElementById('buzzer-modal').style.display = (document.getElementById('buzzer-modal').style.display==='none' || document.getElementById('buzzer-modal').style.display==='') ? 'flex' : 'none'; }
+function toggleModal(id) { const el = document.getElementById(id); el.style.display = (el.style.display==='none' || el.style.display==='') ? 'flex' : 'none'; }
+function resetBuzzers() { db.ref('arena/buzz').set(null); logEvent("Buzzers reset."); }
+db.ref('arena/buzz').on('value', snap => { const b = snap.val(); if(b) { spawnFX(b.teamName, 'plus', " BUZZ!"); playBeep(880, 0.5); } });
+
+window.onkeydown = (e) => { if(e.code === 'ArrowRight') nav(1); if(e.code === 'ArrowLeft') nav(-1); if(e.key === 'h') triggerHint(); if(e.key === 'r') triggerReveal(); };
+</script>
+</body>
+</html>
