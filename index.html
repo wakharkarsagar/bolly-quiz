@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BollyQuiz Player</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; }
+        #buzz-btn { width: 220px; height: 220px; border-radius: 50%; background: #ef4444; color: white; font-size: 2rem; border: none; cursor: pointer; }
+        #buzz-btn:disabled { background: #334155; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div id="join-screen">
+        <input type="text" id="name" placeholder="Team Name" style="padding:10px;">
+        <button onclick="join()" style="padding:10px; background:#fbbf24;">JOIN</button>
+    </div>
+    <div id="game-screen" style="display:none;">
+        <h2 id="display-q">Waiting...</h2>
+        <button id="buzz-btn" onclick="buzz()">BUZZ!</button>
+        <p id="status">Ready</p>
+    </div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDDAn3h5vQ71gd2gU2Dj1e9o0IwjHDdl-k",
+  authDomain: "bollyquiz-arena.firebaseapp.com",
+  databaseURL: "https://bollyquiz-arena-default-rtdb.firebaseio.com",
+  projectId: "bollyquiz-arena",
+  storageBucket: "bollyquiz-arena.firebasestorage.app",
+  messagingSenderId: "847926254864",
+  appId: "1:847926254864:web:221a8e4c82d1951add1995"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+let myName = "";
+
+function join() {
+    myName = document.getElementById('name').value;
+    if(!myName) return;
+    db.ref('arena/teams').push({ name: myName, score: 0 });
+    document.getElementById('join-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
+}
+
+// LISTEN FOR QUESTION
+db.ref('arena/active_question').on('value', snap => {
+    if(snap.val()) document.getElementById('display-q').innerText = snap.val().text;
+});
+
+// LISTEN FOR BUZZER LOCK
+db.ref('arena/buzzer_locked').on('value', snap => {
+    const isLocked = snap.val();
+    const btn = document.getElementById('buzz-btn');
+    btn.disabled = isLocked;
+    document.getElementById('status').innerText = isLocked ? "LOCKED" : "GO!";
+});
+
+function buzz() {
+    db.ref('arena/buzzer_locked').set(true);
+    db.ref('arena/current_buzzer').set({ name: myName });
+}
+</script>
+</body>
+</html>
